@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# CLion
+.DS_Store
+.idea
+
+# cmake
+cmake-build-debug
+
