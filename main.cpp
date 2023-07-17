@@ -29,7 +29,7 @@ int main() {
             locker2.lock();
             if(upload2.empty()){
                 locker2.unlock();
-                return 0;
+                return -1;
             }
             auto data = upload2.front();
             upload2.pop();
@@ -51,7 +51,7 @@ int main() {
                 locker1.lock();
                 if(upload1.empty()){
                     locker1.unlock();
-                    return 0;
+                    return -1;
                 }
                 auto data = upload1.front();
                 upload1.pop();

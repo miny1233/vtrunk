@@ -35,7 +35,7 @@ kcp::kcp(kcp_io &kcpIo,u_int32_t id,int mode):io(kcpIo){
     int len;
     while(true) {
         len = io.recv(buf,BUFFER_SIZE);
-        if(len == 0)continue;
+        if(len == -1)continue;  // -1是没有接收到 0为接收到长度是0的包
         ikcp_input(ikcp,buf,len);
         // 收到了数据 尝试能否读
         std::unique_lock<std::mutex> get_msg(recv_lock);
