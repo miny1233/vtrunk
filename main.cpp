@@ -5,8 +5,15 @@
 #include <mutex>
 #include <memory.h>
 #include <format>
+#include <nlohmann/json.hpp>
 
 int main() {
+
+    nlohmann::json j = R"({
+        "pi": 3.14
+    })"_json;
+    int pi = j["pi"];
+    std::cout<<pi;
     std::mutex locker1,locker2;
     std::queue<std::vector<char>> upload1,upload2;
     kcp_io netio1{
