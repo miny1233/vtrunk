@@ -10,7 +10,7 @@ int data_queue_t::push(std::vector<char> &data) {
         locker.unlock();
         return 0;
     }
-    queue.push(std::move(data));
+    queue.push(data);
     locker.unlock();
     return 1;
 }
