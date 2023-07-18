@@ -5,4 +5,4 @@ set(CMAKE_CXX_STANDARD 20)
 
 INCLUDE_DIRECTORIES(include)
 
-add_executable(vtrunk main.cpp include/kcp.h kcp/kcp.cpp kcp/ikcp.c)
+add_executable(vtrunk main.cpp include/kcp.h kcp/kcp.cpp kcp/ikcp.c data_queue/data_queue.cpp)
