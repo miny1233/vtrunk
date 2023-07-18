@@ -14,7 +14,7 @@ class data_queue_t
 {
 public:
     data_queue_t() = default;
-    int push(std::vector<char>& data);
+    int push(const std::vector<char>& data);
     int pop(std::vector<char>& data);
 private:
     std::mutex locker;

@@ -3,7 +3,7 @@
 //
 #include <data_queue.h>
 
-int data_queue_t::push(std::vector<char> &data) {
+int data_queue_t::push(const std::vector<char> &data) {
     locker.lock();
     if(queue.size()  > 1024) //包堆积了
     {
