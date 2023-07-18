@@ -8,7 +8,7 @@
 #define BUFFER_SIZE (512 * 1024) //缓冲区 512KB
 
 #include <iostream>
-#include <ikcp.h>
+#include "../kcp/ikcp.h"
 #include <thread>
 #include <sys/time.h>
 #include <vector>
