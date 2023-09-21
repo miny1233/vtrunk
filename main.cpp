@@ -1,3 +1,5 @@
+#pragma GCC optimize("O2")
+
 #include <iostream>
 #include <kcp.h>
 #include <queue>
@@ -7,17 +9,24 @@
 #include <format>
 #include <data_queue.h>
 #include <nlohmann/json.hpp>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define UNIX_SOCKER
 
 int main() {
-    std::vector<char> msg(15);
-    strcpy(&msg[0],"hello world");
-    auto q = data_queue_t();
-    q.push(msg);
-    std::vector<char> buf;
-    q.pop(buf);
-    for(auto ch:buf)
-    {
-        std::cout<<ch;
-    }
-    return 1;
+    std::string local_ip = "127.0.0.1"; //本地接口
+    uint16_t port = 13888;
+    int in_sock;
+#ifdef UNIX_SOCKER
+    in_sock = socket(AF_UNIX,SOCK_DGRAM,IPPROTO_UDP);
+    sockaddr_in local{};
+    local.sin_family = AF_UNIX;
+    local.sin_port = port;
+    assert(inet_aton(local_ip.c_str(),&local.sin_addr));
+    assert(bind(in_sock,(sockaddr*)&local,sizeof(local)));
+#endif
+    
 }

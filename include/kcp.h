@@ -15,10 +15,6 @@
 #include <functional>
 #include <mutex>
 
-namespace iKcp {
-
-}
-
 //kcp与底层通信
 struct kcp_io{
     std::function<int(const char* package, int package_size)> send;
@@ -30,7 +26,7 @@ public:
     /* get system time */
    static inline void itimeofday(long *sec, long *usec) {
         timeval time{};
-        gettimeofday(&time, NULL);
+        gettimeofday(&time, nullptr);
         if (sec) *sec = time.tv_sec;
         if (usec) *usec = time.tv_usec;
     }
