@@ -7,17 +7,28 @@
 
 #include <sys/socket.h>
 #include <set>
+#include <initializer_list>
 
-struct tunnel
+class tunnel
 {
+private:
+    int number;
+public:
+    static int num_increase;
     int fd;
     sockaddr objective;
 
+    tunnel(int fd,sockaddr objective):fd(fd), objective(objective){
+        number = tunnel::num_increase++;
+    }
+
     bool operator < (const tunnel& other) const
     {
-        return this->fd < other.fd;
+        return this->number < other.number;
     }
 
 };
+
+int tunnel::num_increase = 1;
 
 #endif //VTRUNK_TUNNEL_H
