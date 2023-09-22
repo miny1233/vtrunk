@@ -43,13 +43,14 @@ kcp::kcp(kcp_io &kcpIo,u_int32_t id,int mode):io(kcpIo){
     }
 }
 
-int kcp::send(const char* msg, int len) {
-    return ikcp_send(ikcp,msg,len);
+ssize_t kcp::send(const void* msg, size_t len) {
+    assert((int)len >= 0);
+    return ikcp_send(ikcp,reinterpret_cast<const char *>(msg),len);
 }
 
-int kcp::recv(char* buf, int buf_size) {
+ssize_t kcp::recv(void* buf, size_t buf_size) {
     read_date:
-    int len = ikcp_recv(ikcp,buf,buf_size);
+    int len = ikcp_recv(ikcp,reinterpret_cast<char*>(buf), buf_size);
     if(len == -1){
         std::unique_lock<std::mutex> recv_l (recv_lock);
         recv_ok.wait(recv_l);

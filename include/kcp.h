@@ -45,8 +45,8 @@ public:
     }
 public:
     kcp(kcp_io& kcpIo,u_int32_t id,int mode = 0);
-    int send(const char* msg,int len);
-    int recv(char* buf,int buf_size);
+    ssize_t send(const void* msg,size_t len);
+    ssize_t recv(void* buf,size_t buf_size);
 private:
     [[noreturn]] void update();
     [[noreturn]] void recv_from_io();
