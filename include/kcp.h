@@ -14,6 +14,7 @@
 #include <vector>
 #include <functional>
 #include <mutex>
+#include <condition_variable>
 
 //kcp与底层通信
 struct kcp_io{

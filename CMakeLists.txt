@@ -12,4 +12,5 @@ add_executable(vtrunk
         kcp/ikcp.c
         include/load_balance.h
         include/tunnel.h
+        include/Log.h
 )

@@ -20,6 +20,7 @@ public:
 
     tunnel(int fd,sockaddr objective):fd(fd), objective(objective){
         number = tunnel::num_increase++;
+        std::cout<<std::format("[{}] Create Tunnel! num = {} \n",__FILE_NAME__,number);
     }
 
     bool operator < (const tunnel& other) const
