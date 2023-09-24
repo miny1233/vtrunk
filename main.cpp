@@ -1,15 +1,12 @@
 #include <iostream>
 #include <kcp.h>
 #include <queue>
-#include <atomic>
 #include <mutex>
-#include <memory.h>
 #include <format>
 #include <nlohmann/json.hpp>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <set>
 #include <tunnel.h>
 #include <load_balance.h>
@@ -33,19 +30,31 @@ uint32_t ip_to_b(const std::string& ip)
     return ret;
 }
 
+#define DEFAULT_CONFIG
+
 int main() {
+    LOG("Loading config");
+    nlohmann::json v_conf;
+
+#ifdef DEFAULT_CONFIG
+    v_conf["bind_ip"] = "127.0.0.1";
+    v_conf["bind_port"] = 13777;
+    auto& _tunnel = v_conf["tunnel"]["default_tunnel"];
+    _tunnel["remote_ip"] = "127.0.0.1";
+    _tunnel["remote_port"] = 13778;
+    std::cout<<to_string(v_conf)<<std::endl;
+#endif
+
     LOG("init vtrunk!");
-    //std::string local_ip = "127.0.0.1"; //本地接口
-    uint32_t port = 1377;
-    int in_sock,ret;
     //绑定本地入口套接字 TCP
-    in_sock = socket(AF_INET,SOCK_STREAM,0);
+    auto in_sock = socket(AF_INET,SOCK_STREAM,0);
     assert(in_sock != -1);
     sockaddr_in local{};
     local.sin_family = AF_INET;
-    local.sin_port = htons(port); //大小端转换
-    local.sin_addr.s_addr = htonl(ip_to_b("127.0.0.1")); //127.0.0.1
+    local.sin_port = htons(v_conf["bind_port"].get<uint16_t>()); //大小端转换
+    local.sin_addr.s_addr = htonl(ip_to_b(v_conf["bind_ip"].get<std::string>()));
     assert(-1 != bind(in_sock,(sockaddr*)&local,sizeof(local)));
+
     //创建隧道
     tunnel t = tunnel(1,sockaddr{});
 
@@ -99,7 +108,7 @@ int main() {
             send(in_sock,buf,pg_size,0);
         }
     });
-    forward_back.join();
-    forward_to.join();
+    forward_back.join(); //一个寄了程序直接寄
+    // forward_to.join(); // send要收到数据才会寄，所以只看back
     return 0;
 }
