@@ -11,6 +11,7 @@
 #include <tunnel.h>
 #include <load_balance.h>
 #include <Log.h>
+#include <fstream>
 
 #define BUF_SIZE (512 * 1024)
 
@@ -32,19 +33,33 @@ uint32_t ip_to_b(const std::string& ip)
 
 #define DEFAULT_CONFIG
 
-int main() {
+int main(int argc,char* argv[]) {
     LOG("Loading config");
     nlohmann::json v_conf;
-
-#ifdef DEFAULT_CONFIG
-    v_conf["bind_ip"] = "127.0.0.1";
-    v_conf["bind_port"] = 13777;
-    auto& _tunnel = v_conf["tunnel"]["default_tunnel"];
-    _tunnel["remote_ip"] = "127.0.0.1";
-    _tunnel["remote_port"] = 13778;
-    std::cout<<to_string(v_conf)<<std::endl;
-#endif
-
+    if(argc != 2) {
+        LOG("Use default config");
+        v_conf["bind_ip"] = "127.0.0.1";
+        v_conf["bind_port"] = 13777;
+        auto &_tunnel = v_conf["tunnel"]["default_tunnel"];
+        _tunnel["remote_ip"] = "127.0.0.1";
+        _tunnel["remote_port"] = 13778;
+    }else {
+        std::string conf_path = argv[1];
+        std::fstream conf_raw_fd(conf_path,std::ios::binary | std::ios::in);
+        conf_raw_fd.seekg(0, std::ios::end);    // go to the end
+        auto length = conf_raw_fd.tellg();           // report location (this is the length)
+        conf_raw_fd.seekg(0, std::ios::beg);
+        std::vector<char> conf_buf(length);
+        conf_raw_fd.read(&conf_buf[0],length);
+        v_conf = nlohmann::json::parse(&conf_buf[0]);
+        //LOG("{}",&conf_buf[0]);
+    }
+    LOG("config is :");
+    for(char ch : to_string(v_conf))
+    {
+        std::cout<<ch;
+        if(ch == '{' | ch == '}' | ch == ',')std::cout<<std::endl;
+    }
     LOG("init vtrunk!");
     //绑定本地入口套接字 TCP
     auto in_sock = socket(AF_INET,SOCK_STREAM,0);
