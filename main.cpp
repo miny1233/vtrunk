@@ -52,14 +52,13 @@ int main(int argc,char* argv[]) {
         std::vector<char> conf_buf(length);
         conf_raw_fd.read(&conf_buf[0],length);
         v_conf = nlohmann::json::parse(&conf_buf[0]);
-        //LOG("{}",&conf_buf[0]);
     }
-    LOG("config is :");
-    for(char ch : to_string(v_conf))
-    {
-        std::cout<<ch;
-        if(ch == '{' | ch == '}' | ch == ',')std::cout<<std::endl;
-    }
+    //LOG("config is :");
+    //for(char ch : to_string(v_conf))
+    //{
+    //    std::cout<<ch;
+    //    if(ch == '{' | ch == '}' | ch == ',')std::cout<<std::endl;
+    //}
     LOG("init vtrunk!");
     //绑定本地入口套接字 TCP
     auto in_sock = socket(AF_INET,SOCK_STREAM,0);
@@ -70,11 +69,22 @@ int main(int argc,char* argv[]) {
     local.sin_addr.s_addr = htonl(ip_to_b(v_conf["bind_ip"].get<std::string>()));
     assert(-1 != bind(in_sock,(sockaddr*)&local,sizeof(local)));
 
-    //创建隧道
-    tunnel t = tunnel(1,sockaddr{});
-
+    //负载均衡(Ai)
     load_balance loadBalance = load_balance();
-    loadBalance.add_tunnel(t);
+
+    //创建隧道
+    for(auto _tunnel : v_conf["tunnel"]) {
+        LOG("Create tunnel {} , remote ip: {} remote port: {}",
+            _tunnel.items().begin().key(),_tunnel["remote_ip"].get<std::string>(),_tunnel["remote_port"].get<uint16_t>());
+        auto t_fd = socket(AF_INET,SOCK_DGRAM,0);
+        assert(-1 != t_fd);
+        sockaddr_in re_dev{};
+        re_dev.sin_family = AF_INET,
+        re_dev.sin_addr.s_addr = htonl(ip_to_b(_tunnel["remote_ip"].get<std::string>())),
+        re_dev.sin_port = htons(_tunnel["remote_port"].get<uint16_t>());
+        tunnel t = tunnel(t_fd, *reinterpret_cast<sockaddr*>(&re_dev));
+        loadBalance.add_tunnel(t);
+    }
 
     assert(!listen(in_sock,1));
 
