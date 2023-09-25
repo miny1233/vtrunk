@@ -43,6 +43,8 @@ int main(int argc,char* argv[]) {
         auto &_tunnel = v_conf["tunnel"]["default_tunnel"];
         _tunnel["remote_ip"] = "127.0.0.1";
         _tunnel["remote_port"] = 13778;
+        _tunnel["bind_ip"] = "0.0.0.0";
+        _tunnel["bind_port"] = 0;
     }else {
         std::string conf_path = argv[1];
         std::fstream conf_raw_fd(conf_path,std::ios::binary | std::ios::in);
@@ -74,15 +76,22 @@ int main(int argc,char* argv[]) {
 
     //创建隧道
     for(auto _tunnel : v_conf["tunnel"]) {
-        LOG("Create tunnel {} , remote ip: {} remote port: {}",
-            _tunnel.items().begin().key(),_tunnel["remote_ip"].get<std::string>(),_tunnel["remote_port"].get<uint16_t>());
+        LOG("Create tunnel! \nremote ip: {} remote port: {}\n"
+            "bind ip: {} , bind port: {}",
+           _tunnel["remote_ip"].get<std::string>(),_tunnel["remote_port"].get<uint16_t>(),
+                   _tunnel["bind_ip"].get<std::string>(),_tunnel["bind_port"].get<uint16_t>());
         auto t_fd = socket(AF_INET,SOCK_DGRAM,0);
         assert(-1 != t_fd);
-        sockaddr_in re_dev{};
-        re_dev.sin_family = AF_INET,
-        re_dev.sin_addr.s_addr = htonl(ip_to_b(_tunnel["remote_ip"].get<std::string>())),
-        re_dev.sin_port = htons(_tunnel["remote_port"].get<uint16_t>());
-        tunnel t = tunnel(t_fd, *reinterpret_cast<sockaddr*>(&re_dev));
+        sockaddr_in re_temp{};
+        re_temp.sin_family = AF_INET;
+        re_temp.sin_addr.s_addr = htonl(ip_to_b(_tunnel["bind_ip"].get<std::string>())),
+        re_temp.sin_port = htons(_tunnel["bind_port"].get<uint16_t>());
+        assert(-1 != bind(t_fd,(sockaddr*)&re_temp,sizeof re_temp));
+
+        re_temp.sin_family = AF_INET,
+        re_temp.sin_addr.s_addr = htonl(ip_to_b(_tunnel["remote_ip"].get<std::string>())),
+        re_temp.sin_port = htons(_tunnel["remote_port"].get<uint16_t>());
+        tunnel t = tunnel(t_fd, *reinterpret_cast<sockaddr*>(&re_temp));
         loadBalance.add_tunnel(t);
     }
 
