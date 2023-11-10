@@ -5,8 +5,6 @@
 #ifndef VTRUNK_KCP_H
 #define VTRUNK_KCP_H
 
-#define BUFFER_SIZE (512 * 1024) //缓冲区 512KB
-
 #include <iostream>
 #include "../kcp/ikcp.h"
 #include <thread>
@@ -15,6 +13,8 @@
 #include <functional>
 #include <mutex>
 #include <condition_variable>
+
+#define BUFFER_SIZE (512 * 1024)
 
 //kcp与底层通信
 struct kcp_io{
@@ -55,7 +55,9 @@ private:
     ikcpcb* ikcp;
     std::thread update_task,recv_task;
     std::mutex recv_lock; // 全局互斥锁
+    std::mutex kcp_lock;  // kcp锁 kcp是多线程不安全的 这里最好使用自旋锁
     std::condition_variable recv_ok; // 收到数据 可以尝试读取
+    std::unique_lock<std::mutex> recv_l;// 用来通知可能有消息可用
 };
 
 

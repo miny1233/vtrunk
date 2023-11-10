@@ -13,7 +13,7 @@
 #include <Log.h>
 #include <fstream>
 
-#define BUF_SIZE (512 * 1024)
+#define BUF_SIZE (128 * 1024)
 
 uint32_t ip_to_b(const std::string& ip)
 {
@@ -33,6 +33,8 @@ uint32_t ip_to_b(const std::string& ip)
 
 #define DEFAULT_CONFIG
 
+void test();
+
 int main(int argc,char* argv[]) {
     LOG("Loading config");
     nlohmann::json v_conf;
@@ -42,12 +44,14 @@ int main(int argc,char* argv[]) {
         v_conf["bind_port"] = 13777;
         auto &_tunnel = v_conf["tunnel"]["default_tunnel"];
         _tunnel["remote_ip"] = "127.0.0.1";
-        _tunnel["remote_port"] = 13778;
-        _tunnel["bind_ip"] = "0.0.0.0";
-        _tunnel["bind_port"] = 0;
+        _tunnel["remote_port"] = 12770;
+        _tunnel["bind_ip"] = "127.0.0.1";
+        _tunnel["bind_port"] = 12770;
     }else {
+        LOG("Load config from disk");
         std::string conf_path = argv[1];
         std::fstream conf_raw_fd(conf_path,std::ios::binary | std::ios::in);
+
         conf_raw_fd.seekg(0, std::ios::end);    // go to the end
         auto length = conf_raw_fd.tellg();           // report location (this is the length)
         conf_raw_fd.seekg(0, std::ios::beg);
@@ -80,19 +84,23 @@ int main(int argc,char* argv[]) {
             "bind ip: {} , bind port: {}",
            key_name,
            _tunnel["remote_ip"].get<std::string>(),_tunnel["remote_port"].get<uint16_t>(),
-                   _tunnel["bind_ip"].get<std::string>(),_tunnel["bind_port"].get<uint16_t>());
+           _tunnel["bind_ip"].get<std::string>(),_tunnel["bind_port"].get<uint16_t>()
+           );
+
         auto t_fd = socket(AF_INET,SOCK_DGRAM,0);
         assert(-1 != t_fd);
         sockaddr_in re_temp{};
         re_temp.sin_family = AF_INET;
         re_temp.sin_addr.s_addr = htonl(ip_to_b(_tunnel["bind_ip"].get<std::string>())),
         re_temp.sin_port = htons(_tunnel["bind_port"].get<uint16_t>());
+        //绑定本地端口
         assert(-1 != bind(t_fd,(sockaddr*)&re_temp,sizeof re_temp));
 
         re_temp.sin_family = AF_INET,
         re_temp.sin_addr.s_addr = htonl(ip_to_b(_tunnel["remote_ip"].get<std::string>())),
         re_temp.sin_port = htons(_tunnel["remote_port"].get<uint16_t>());
         tunnel t = tunnel(t_fd, *reinterpret_cast<sockaddr*>(&re_temp));
+
         loadBalance.add_tunnel(t);
     }
 
@@ -100,6 +108,9 @@ int main(int argc,char* argv[]) {
 
     sockaddr local_user{};
     socklen_t local_user_len{};
+
+    //测试线程
+    std::thread test_th(test);
 
     LOG("Wait connecting for user");
     in_sock = accept(in_sock,&local_user,&local_user_len);
@@ -115,7 +126,7 @@ int main(int argc,char* argv[]) {
         }
     };
 
-    kcp _kcp = kcp(kcpIo,1233);
+    kcp _kcp = kcp(kcpIo,1233,1);
     //启动
     std::thread forward_to = std::thread([&]() -> void {
         char *buf = new char[BUF_SIZE];
@@ -131,9 +142,9 @@ int main(int argc,char* argv[]) {
 
     std::thread forward_back = std::thread ([&]() -> void {
         char *buf = new char[BUF_SIZE];
+        socklen_t len;
+        sockaddr recv_from{};
         while (true) {
-            socklen_t len;
-            sockaddr recv_from{};
             auto pg_size = _kcp.recv(buf,BUF_SIZE);
             if (pg_size < 0) [[unlikely]]
             {
@@ -143,7 +154,71 @@ int main(int argc,char* argv[]) {
             send(in_sock,buf,pg_size,0);
         }
     });
+
+    while(true)
+    {
+        std::string command;
+        std::cin>>command;
+        if(command == "exit") {
+            exit(0);
+        }
+    }
+
+
     forward_back.join(); //一个寄了程序直接寄
-    // forward_to.join(); // send要收到数据才会寄，所以只看back
+    //forward_to.join(); // send要收到数据才会寄，所以只看back
     return 0;
 }
+
+void test()
+{
+    int c[] = {socket(AF_INET,SOCK_STREAM,IPPROTO_TCP),socket(AF_INET,SOCK_STREAM,IPPROTO_TCP)};
+    sockaddr_in null_addr{};
+    null_addr.sin_family = AF_INET;
+    null_addr.sin_port = htons(0); //大小端转换
+    null_addr.sin_addr.s_addr = htonl(ip_to_b("0.0.0.0"));
+    int ret = bind(c[0], reinterpret_cast<const sockaddr *>(&null_addr), sizeof null_addr);
+    if(ret < 0)
+    {
+        std::cerr<<"bind error";
+    }
+    sockaddr_in ser_addr{};
+    ser_addr.sin_family = AF_INET;
+    ser_addr.sin_port = htons(13777);
+    ser_addr.sin_addr.s_addr = htonl(ip_to_b("127.0.0.1"));
+
+    ret = connect(c[0], reinterpret_cast<const sockaddr *>(&ser_addr), sizeof ser_addr);
+
+    if(ret < 0)std::cerr<<"connect error";
+
+    std::thread remove_data([&c] {
+        size_t sum_size = 0;
+        auto c_start = time(nullptr), c_end = c_start;
+        while(1) {
+            char buf[64 * 1024];
+
+            ssize_t length = recv(c[0], buf, sizeof buf, 0);
+            sum_size += length;
+            c_end = time(nullptr);
+
+            //std::cout<<difftime(c_end,c_start)<<std::endl;
+
+            if(difftime(c_end,c_start) > 1)
+            {
+                std::cout<<"NetSpeed is "<<(int)((float)sum_size/(float)difftime(c_end,c_start)/1024)<<"KB/s"<<std::endl;
+                c_start = c_end;
+                sum_size = 0;
+            }
+
+        }
+    });
+
+    while(1)
+    {
+        char msg[32 * 1024];
+        //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        send(c[0],msg,1024,0);
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+}
+
