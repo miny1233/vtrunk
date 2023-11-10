@@ -11,20 +11,21 @@
 
 class load_balance {
 private:
-    std::set<tunnel> socket_fd_list;
-    std::set<tunnel>::iterator s_tunnel,r_tunnel;
+    std::vector<tunnel> socket_fd_list;
+    std::vector<tunnel>::iterator s_tunnel,r_tunnel;
 public:
     load_balance():socket_fd_list(),s_tunnel(socket_fd_list.begin()){};
     void add_tunnel(tunnel fd)
     {
-        s_tunnel = socket_fd_list.insert(fd).first;
+        socket_fd_list.push_back(fd);
+        s_tunnel = socket_fd_list.begin();
         r_tunnel = s_tunnel;
     }
     void del_tunnel(tunnel fd)
     {
-        socket_fd_list.erase(fd);
-        s_tunnel = socket_fd_list.begin();
-        r_tunnel = s_tunnel;
+        //socket_fd_list.erase(fd);
+        //s_tunnel = socket_fd_list.begin();
+        //r_tunnel = s_tunnel;
     }
     ssize_t send_next(const void* buf,size_t len)
     {

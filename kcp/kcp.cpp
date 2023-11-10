@@ -37,7 +37,7 @@ kcp::kcp(kcp_io &kcpIo,u_int32_t id,int mode):io(kcpIo),recv_l (recv_lock){
         ikcp_update(ikcp, kcp::iclock());
         kcp_lock.unlock();
         //auto next_flush = ikcp_check(ikcp, iKcp::iclock());
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 
@@ -46,7 +46,11 @@ kcp::kcp(kcp_io &kcpIo,u_int32_t id,int mode):io(kcpIo),recv_l (recv_lock){
     int len;
     while(true) {
         len = io.recv(buf,BUFFER_SIZE);
-        if(len == -1)continue;  // -1是没有接收到 0为接收到长度是0的包
+
+        if(len == -1)
+        {
+            continue;  // -1是没有接收到 0为接收到长度是0的包
+        }
 
         kcp_lock.lock();
         ikcp_input(ikcp,buf,len);
@@ -65,13 +69,14 @@ ssize_t kcp::send(const void* msg, size_t len) {
         auto waitsnd = ikcp_waitsnd(ikcp);
 
         //std::cout<<"wait snd:" << waitsnd << "\n";
-        if(waitsnd < 5000)
+        if(waitsnd < 50000)
             break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         //while(ikcp_waitsnd(ikcp));
     }
 
     int ret = ikcp_send(ikcp,reinterpret_cast<const char *>(msg),(int)len);
+
 
     return ret;
 }
@@ -81,7 +86,6 @@ ssize_t kcp::recv(void* buf, size_t buf_size) {
 
     kcp_lock.lock();
     int len = ikcp_recv(ikcp,reinterpret_cast<char*>(buf), (int)buf_size);
-    ikcp_update(ikcp, kcp::iclock());
     kcp_lock.unlock();
 
     if(len < 0){

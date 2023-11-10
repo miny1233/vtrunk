@@ -13,7 +13,7 @@
 #include <Log.h>
 #include <fstream>
 
-#define BUF_SIZE (128 * 1024)
+#define BUF_SIZE (32 * 1024)
 
 uint32_t ip_to_b(const std::string& ip)
 {
@@ -47,6 +47,11 @@ int main(int argc,char* argv[]) {
         _tunnel["remote_port"] = 12770;
         _tunnel["bind_ip"] = "127.0.0.1";
         _tunnel["bind_port"] = 12770;
+        auto &__tunnel = v_conf["tunnel"]["2_tunnel"];
+        __tunnel["remote_ip"] = "127.0.0.1";
+        __tunnel["remote_port"] = 12771;
+        __tunnel["bind_ip"] = "127.0.0.1";
+        __tunnel["bind_port"] = 12771;
     }else {
         LOG("Load config from disk");
         std::string conf_path = argv[1];
@@ -191,7 +196,7 @@ void test()
 
     if(ret < 0)std::cerr<<"connect error";
 
-    std::thread remove_data([&c] {
+    auto remove_data = [&c] {
         size_t sum_size = 0;
         auto c_start = time(nullptr), c_end = c_start;
         while(1) {
@@ -211,13 +216,14 @@ void test()
             }
 
         }
-    });
+    };
+    std::thread remove_data_th(remove_data);
 
     while(1)
     {
-        char msg[32 * 1024];
+        char msg[64 * 1024];
         //std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        send(c[0],msg,1024,0);
+        send(c[0],msg,16 * 1024,0);
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
