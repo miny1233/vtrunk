@@ -14,7 +14,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#define BUFFER_SIZE (512 * 1024)
+#define BUFFER_SIZE (32 * 1024)
 
 //kcp与底层通信
 struct kcp_io{

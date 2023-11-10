@@ -13,7 +13,7 @@
 #include <Log.h>
 #include <fstream>
 
-#define BUF_SIZE (32 * 1024)
+#define BUF_SIZE (64 * 1024)
 
 uint32_t ip_to_b(const std::string& ip)
 {
@@ -137,7 +137,9 @@ int main(int argc,char* argv[]) {
         char *buf = new char[BUF_SIZE];
         while (true) {
             auto pg_size = recv(in_sock, buf, BUF_SIZE, 0);
+
             pg_size = _kcp.send(buf, pg_size);
+
             if (pg_size < 0) [[unlikely]] {
                 std::cerr << std::format("Error: in forward_to KCP error ret = {}\n", pg_size);
                 exit(-1);
@@ -151,11 +153,13 @@ int main(int argc,char* argv[]) {
         sockaddr recv_from{};
         while (true) {
             auto pg_size = _kcp.recv(buf,BUF_SIZE);
+
             if (pg_size < 0) [[unlikely]]
             {
                 std::cerr << std::format("Error: in forward_back KCP error ret = {}\n", pg_size);
                 exit(-1);
             }
+
             send(in_sock,buf,pg_size,0);
         }
     });
@@ -223,7 +227,7 @@ void test()
     {
         char msg[64 * 1024];
         //std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        send(c[0],msg,16 * 1024,0);
+        send(c[0],msg,64 * 1024,0);
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }

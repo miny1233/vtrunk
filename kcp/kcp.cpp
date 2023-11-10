@@ -19,11 +19,11 @@ kcp::kcp(kcp_io &kcpIo,u_int32_t id,int mode):io(kcpIo),recv_l (recv_lock){
     }
 
 
-    ikcp_wndsize(ikcp,1024,4096);
-    //ikcp_setmtu(ikcp,);
+    ikcp_wndsize(ikcp,1024,2048);
+    ikcp_setmtu(ikcp,1500);
 
     ikcp->interval = 1;
-    ikcp->rx_minrto = 5;
+    //ikcp->rx_minrto = 5;
 
     update_task = std::thread(&kcp::update,this);
     recv_task = std::thread(&kcp::recv_from_io,this);
@@ -37,7 +37,7 @@ kcp::kcp(kcp_io &kcpIo,u_int32_t id,int mode):io(kcpIo),recv_l (recv_lock){
         ikcp_update(ikcp, kcp::iclock());
         kcp_lock.unlock();
         //auto next_flush = ikcp_check(ikcp, iKcp::iclock());
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(std::chrono::microseconds(1000));
     }
 }
 
@@ -69,14 +69,15 @@ ssize_t kcp::send(const void* msg, size_t len) {
         auto waitsnd = ikcp_waitsnd(ikcp);
 
         //std::cout<<"wait snd:" << waitsnd << "\n";
-        if(waitsnd < 50000)
+        if(waitsnd < 5000)
             break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(10));
         //while(ikcp_waitsnd(ikcp));
     }
 
+    kcp_lock.lock();
     int ret = ikcp_send(ikcp,reinterpret_cast<const char *>(msg),(int)len);
-
+    kcp_lock.unlock();
 
     return ret;
 }
