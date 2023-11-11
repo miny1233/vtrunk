@@ -14,6 +14,7 @@
 #include <fstream>
 
 #define BUF_SIZE (64 * 1024)
+#define SPEEDTEST
 
 uint32_t ip_to_b(const std::string& ip)
 {
@@ -115,7 +116,9 @@ int main(int argc,char* argv[]) {
     socklen_t local_user_len{};
 
     //测试线程
+#ifdef SPEEDTEST
     std::thread test_th(test);
+#endif
 
     LOG("Wait connecting for user");
     in_sock = accept(in_sock,&local_user,&local_user_len);

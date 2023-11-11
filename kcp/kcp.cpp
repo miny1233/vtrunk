@@ -19,7 +19,7 @@ kcp::kcp(kcp_io &kcpIo,u_int32_t id,int mode):io(kcpIo),recv_l (recv_lock){
     }
 
 
-    ikcp_wndsize(ikcp,1024,2048);
+    ikcp_wndsize(ikcp,2048,4096);
     ikcp_setmtu(ikcp,9000);
 
     ikcp->interval = 0;
@@ -50,14 +50,13 @@ kcp::kcp(kcp_io &kcpIo,u_int32_t id,int mode):io(kcpIo),recv_l (recv_lock){
 
         if(len == -1)
         {
-            std::this_thread::yield();
-            //std::this_thread::sleep_for(std::chrono::microseconds(1));
+            //std::this_thread::yield();
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
             continue;  // -1是没有接收到 0为接收到长度是0的包
         }
 
         kcp_lock.lock();
         ikcp_input(ikcp,buf,len);
-        ikcp_update(ikcp, kcp::iclock());
         kcp_lock.unlock();
 
         // 收到了数据 尝试能否读
@@ -73,17 +72,16 @@ ssize_t kcp::send(const void* msg, size_t len) {
         auto waitsnd = ikcp_waitsnd(ikcp);
 
         //std::cout<<"wait snd:" << waitsnd << "\n";
-        if(waitsnd < 5000)
+        if(waitsnd < 50000)
             break;
 
         //std::this_thread::yield();
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        //while(ikcp_waitsnd(ikcp));
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
     }
 
     kcp_lock.lock();
     int ret = ikcp_send(ikcp,reinterpret_cast<const char *>(msg),(int)len);
-    ikcp_update(ikcp, kcp::iclock());
+    //ikcp_update(ikcp, kcp::iclock());
     kcp_lock.unlock();
 
     return ret;
