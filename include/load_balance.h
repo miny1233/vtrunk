@@ -21,32 +21,40 @@ public:
         s_tunnel = socket_fd_list.begin();
         r_tunnel = s_tunnel;
     }
+
     void del_tunnel(tunnel fd)
     {
         //socket_fd_list.erase(fd);
         //s_tunnel = socket_fd_list.begin();
         //r_tunnel = s_tunnel;
     }
+
     ssize_t send_next(const void* buf,size_t len)
     {
         if (s_tunnel == socket_fd_list.end())s_tunnel = socket_fd_list.begin();
-        int ret = sendto(s_tunnel->fd,buf,len,MSG_DONTWAIT,&s_tunnel->objective,sizeof(s_tunnel->objective));
+
+        int ret = sendto(s_tunnel->fd,buf,len,0,&s_tunnel->objective,sizeof(s_tunnel->objective));
+
         s_tunnel++;
         if (ret == -1)
-            std::cerr<<errno<<std::endl;
+            std::cerr<<"send_next:"<<errno<<" len is "<<len<<std::endl;
         return ret;
     }
 
     ssize_t recv_next(void* buf,size_t buf_size)
     {
-        reget:
-        if(r_tunnel == socket_fd_list.end())r_tunnel = socket_fd_list.begin();
+        if(r_tunnel == socket_fd_list.end())
+            r_tunnel = socket_fd_list.begin();
+
         sockaddr none;
         socklen_t none_len;
+
+        get_msg:
         ssize_t ret = recvfrom(r_tunnel->fd,buf,buf_size,MSG_DONTWAIT,&none,&none_len);
-        r_tunnel++;
-        if(ret == -1)
-            goto reget;
+
+        if(ret == -1 && ++r_tunnel != socket_fd_list.end())
+            goto get_msg;
+
         return ret;
     }
 

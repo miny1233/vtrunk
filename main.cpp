@@ -33,7 +33,7 @@ uint32_t ip_to_b(const std::string& ip)
 
 #define DEFAULT_CONFIG
 
-void test();
+[[noreturn]] void test();
 
 int main(int argc,char* argv[]) {
     LOG("Loading config");
@@ -42,7 +42,7 @@ int main(int argc,char* argv[]) {
         LOG("Use default config");
         v_conf["bind_ip"] = "127.0.0.1";
         v_conf["bind_port"] = 13777;
-        auto &_tunnel = v_conf["tunnel"]["default_tunnel"];
+        auto &_tunnel = v_conf["tunnel"]["1_tunnel"];
         _tunnel["remote_ip"] = "127.0.0.1";
         _tunnel["remote_port"] = 12770;
         _tunnel["bind_ip"] = "127.0.0.1";
@@ -131,7 +131,7 @@ int main(int argc,char* argv[]) {
         }
     };
 
-    kcp _kcp = kcp(kcpIo,1233,1);
+    kcp _kcp = kcp(kcpIo,1233,0);
     //启动
     std::thread forward_to = std::thread([&]() -> void {
         char *buf = new char[BUF_SIZE];
@@ -168,7 +168,7 @@ int main(int argc,char* argv[]) {
     {
         std::string command;
         std::cin>>command;
-        if(command == "exit") {
+        if(command == "c") {
             exit(0);
         }
     }
@@ -179,7 +179,7 @@ int main(int argc,char* argv[]) {
     return 0;
 }
 
-void test()
+[[noreturn]] void test()
 {
     int c[] = {socket(AF_INET,SOCK_STREAM,IPPROTO_TCP),socket(AF_INET,SOCK_STREAM,IPPROTO_TCP)};
     sockaddr_in null_addr{};
@@ -203,7 +203,7 @@ void test()
     auto remove_data = [&c] {
         size_t sum_size = 0;
         auto c_start = time(nullptr), c_end = c_start;
-        while(1) {
+        while(true) {
             char buf[64 * 1024];
 
             ssize_t length = recv(c[0], buf, sizeof buf, 0);
@@ -214,7 +214,7 @@ void test()
 
             if(difftime(c_end,c_start) > 1)
             {
-                std::cout<<"NetSpeed is "<<(int)((float)sum_size/(float)difftime(c_end,c_start)/1024)<<"KB/s"<<std::endl;
+                std::cout<<"NetSpeed is "<<(int)((float)sum_size/(float)difftime(c_end,c_start)/1024/1024)<<"MB/s"<<std::endl;
                 c_start = c_end;
                 sum_size = 0;
             }
@@ -223,10 +223,10 @@ void test()
     };
     std::thread remove_data_th(remove_data);
 
-    while(1)
+    while(true)
     {
         char msg[64 * 1024];
-        //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         send(c[0],msg,64 * 1024,0);
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
